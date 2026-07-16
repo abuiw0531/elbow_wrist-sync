@@ -8,6 +8,7 @@ from utils.recorder import DataRecorder
 from utils.sim_env import PyBulletSim
 from datetime import datetime
 import serial
+import os
 
 # ==== 全域配置 ====
 CONFIG = {
@@ -201,10 +202,15 @@ class Application:
             
     def stop_recording(self):
         if self.recorder.is_recording:
+            # 建立或確認 data 資料夾存在 (位於 project 根目錄的上一層)
+            current_dir = os.path.dirname(os.path.abspath(__file__))
+            data_dir = os.path.join(os.path.dirname(current_dir), "data")
+            os.makedirs(data_dir, exist_ok=True)
+            
             # {模式名稱}_{日期_時間}.csv
             mode_name = self.current_mode.get()
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"{mode_name}_{timestamp}.csv"
+            filename = os.path.join(data_dir, f"{mode_name}_{timestamp}.csv")
             
             self.recorder.stop(filename)
             self.record_status_var.set("Status: Idle")
