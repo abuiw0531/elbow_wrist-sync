@@ -2,11 +2,13 @@
 
 *[English Version Below](#english-version)*
 
-這是一個基於電腦視覺 (MediaPipe) 與物理模擬 (PyBullet) 的手部關節追蹤與機械手臂同步專案。透過網路攝影機即時捕捉人體的手肘、腕部角度以及手指張合度，並將其同步映射到 3D 模擬環境中的機器手臂，同時支援序列埠 (Serial) 輸出控制實體手臂，與記錄動作數據做為分析用途。
+![Demo](image57.gif)
+
+這是一個高度整合電腦視覺 (MediaPipe) 與**高擬真物理模擬 (PyBullet)** 的手部關節追蹤與機械手臂同步專案。本專案最大的特色在於運用 **PyBullet 打造極具真實感的 3D 虛擬環境**，當系統透過網路攝影機即時捕捉人體的手肘、腕部角度及手指張合度時，能達到**零時差、高擬真**地將這些細微動作同步映射至虛擬機器手臂上。這使得開發者在無實體硬體的情況下，也能獲得極為逼真的物理碰撞與運動學預覽體驗。此外，系統亦支援序列埠 (Serial) 輸出以直接控制實體手臂，並具備精準的動作數據記錄功能，適用於各類動作分析與機器人控制研究。
 
 ## 專案功能 (Features)
+- **3D 擬真物理模擬 (Realistic PyBullet Simulation)**：本專案深度整合 PyBullet 引擎，提供極致逼真的物理碰撞與關節連動模擬。在完全不需要實體手臂的情況下，即可在高度擬真的虛擬環境中即時反映真實世界的手臂姿態，大幅降低測試成本與風險。
 - **即時姿勢偵測 (Real-time Pose Detection)**：使用 MediaPipe 偵測肩、肘、腕關節與手指的空間座標，並計算出精準的夾角。
-- **3D 模擬器同步 (PyBullet Simulation)**：在虛擬環境中即時反映真實世界的手臂姿態，方便於無實體硬體的情況下進行測試與預覽。
 - **雜訊濾波 (Kalman & Median Filter)**：內建卡爾曼濾波結合中值濾波器，讓擷取的角度變化更平滑且穩定。
 - **序列埠通訊 (Serial Communication)**：可以將轉換後的角度數據以高頻率 (如 20Hz) 發送給微控制器，用於實體手臂同步控制。
 - **數據記錄與匯出 (Data Recording)**：內建校正與錄製功能，可將手肘/手腕角度與張合狀態匯出為 CSV 檔。
@@ -64,11 +66,13 @@ elbow_wrist+sync/
 
 # Elbow Wrist Sync
 
-This is a hand joint tracking and robotic arm synchronization project based on computer vision (MediaPipe) and physical simulation (PyBullet). It captures real-time elbow angles, wrist angles, and finger aperture using a webcam, and maps them synchronously to a robotic arm in a 3D simulation environment. It also supports Serial communication for controlling physical robotic arms and records motion data for analysis.
+![Demo](image57.gif)
+
+This project is a highly integrated hand joint tracking and robotic arm synchronization system based on computer vision (MediaPipe) and **highly realistic physical simulation (PyBullet)**. The core highlight of this project is its use of **PyBullet to create a remarkably authentic 3D virtual environment**. As the system captures real-time elbow angles, wrist angles, and finger aperture via a webcam, it maps these subtle movements synchronously to a virtual robotic arm with **zero-latency and high realism**. This allows developers to experience extremely realistic physics, collisions, and kinematics previewing, even without physical hardware. Additionally, it supports Serial communication for controlling physical robotic arms and records precise motion data for various analysis and robotics research applications.
 
 ## Features
+- **Realistic 3D Physical Simulation (PyBullet)**: Deeply integrated with the PyBullet engine, this project provides ultra-realistic physics, collision, and joint articulation simulation. It perfectly reflects real-world arm poses in a highly realistic virtual environment in real-time, significantly reducing testing costs and risks without the need for physical hardware.
 - **Real-time Pose Detection**: Uses MediaPipe to detect spatial coordinates of the shoulder, elbow, wrist joints, and fingers, calculating precise angles.
-- **3D Simulation Synchronization (PyBullet)**: Reflects real-world arm poses in a virtual environment in real-time, facilitating testing and previewing without physical hardware.
 - **Noise Filtering (Kalman & Median Filter)**: Built-in Kalman filter combined with a median filter to make the extracted angle changes smoother and more stable.
 - **Serial Communication**: Transmits the converted angle data at a high frequency (e.g., 20Hz) to a microcontroller for synchronized control of a physical arm.
 - **Data Recording**: Built-in calibration and recording functionality that exports elbow/wrist angles and aperture status to a CSV file.
