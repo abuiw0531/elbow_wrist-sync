@@ -1,125 +1,73 @@
-# Elbow Wrist Sync (影像與機械手臂同步監控系統)
+# Elbow–Wrist 視覺追蹤與 PyBullet 手臂模擬
 
 *[English Version Below](#english-version)*
 
 ![Demo](image57.gif)
 
-這是一個高度整合電腦視覺 (MediaPipe) 與**高擬真物理模擬 (PyBullet)** 的手部關節追蹤與機械手臂同步專案。本專案最大的特色在於運用 **PyBullet 打造極具真實感的 3D 虛擬環境**，當系統透過網路攝影機即時捕捉人體的手肘、腕部角度及手指張合度時，能達到**零時差、高擬真**地將這些細微動作同步映射至虛擬機器手臂上。這使得開發者在無實體硬體的情況下，也能獲得極為逼真的物理碰撞與運動學預覽體驗。此外，系統亦支援序列埠 (Serial) 輸出以直接控制實體手臂，並具備精準的動作數據記錄功能，適用於各類動作分析與機器人控制研究。
+## 專案介紹
 
-## 專案功能 (Features)
-- **3D 擬真物理模擬 (Realistic PyBullet Simulation)**：本專案深度整合 PyBullet 引擎，提供極致逼真的物理碰撞與關節連動模擬。在完全不需要實體手臂的情況下，即可在高度擬真的虛擬環境中即時反映真實世界的手臂姿態，大幅降低測試成本與風險。
-- **即時姿勢偵測 (Real-time Pose Detection)**：使用 MediaPipe 偵測肩、肘、腕關節與手指的空間座標，並計算出精準的夾角。
-- **雜訊濾波 (Kalman & Median Filter)**：內建卡爾曼濾波結合中值濾波器，讓擷取的角度變化更平滑且穩定。
-- **序列埠通訊 (Serial Communication)**：可以將轉換後的角度數據以高頻率 (如 20Hz) 發送給微控制器，用於實體手臂同步控制。
-- **數據記錄與匯出 (Data Recording)**：內建校正與錄製功能，可將手肘/手腕角度與張合狀態匯出為 CSV 檔。
+我以 webcam 影像中的人體手臂與手部 landmark 為輸入，計算手肘角度、手腕角度及手指張合狀態，並將平滑後的角度映射至 PyBullet 中的 URDF 手臂關節。這個專案讓我練習由影像幾何資訊形成控制參數，再觀察其在機器人模擬中的應用；我也希望以此為基礎，未來研究用機器學習由 2D 影像資訊推進至 3D 空間判斷。
 
-## 目錄結構 (Project Structure)
-```text
-elbow_wrist+sync/
-├── data/                 # 系統自動建立，用於儲存錄製的 CSV 校正與數據檔
-├── logs/                 # 存放錯誤日誌或系統運行記錄
-├── project/              # 專案原始碼與資源主目錄
-│   ├── assets/           # 模型檔資源 (如 simple_arm.urdf)
-│   ├── utils/            # 功能模組
-│   │   ├── detector.py   # MediaPipe 視覺偵測與角度計算邏輯
-│   │   ├── filters.py    # Kalman 與中值濾波演算法
-│   │   ├── recorder.py   # 負責將陣列資料錄製並寫入 CSV
-│   │   └── sim_env.py    # PyBullet 3D 模擬環境建構與更新邏輯
-│   └── main.py           # GUI 介面程式與系統整合主進入點
-└── README.md             # 專案說明文件
-```
+## 視覺到模擬關節的流程
 
-## 系統需求 (Requirements)
-本專案使用 Python 開發，建議使用 Python 3.8+。
-請確保已經安裝以下相關套件：
-- `opencv-python` (cv2)
-- `mediapipe`
-- `cvzone`
-- `pybullet`
-- `pyserial`
-- `Pillow`
-- `numpy`
+1. 使用 OpenCV 擷取 webcam 影像。
+2. 使用 cvzone PoseModule 與 HandTrackingModule 取得人體及手部 landmark。
+3. 以肩、肘、腕的 landmark 幾何關係計算手肘角度；以手肘、手腕與手掌相關點計算手腕角度。
+4. 以拇指與食指距離判斷手指張合狀態。
+5. 對角度訊號使用 median filter 與 scalar Kalman filter 平滑。
+6. 將角度轉為 URDF 手臂的目標關節位置，透過 PyBullet position control 更新模擬關節。
+7. 專案另包含 CSV 資料記錄及選配的 PySerial 序列輸出流程。
 
-## 使用方式 (How to Use)
-1. 在終端機 / 命令提示字元進入 `project` 資料夾：
-   ```bash
-   cd project
-   ```
-2. 執行主程式：
-   ```bash
-   python main.py
-   ```
-3. 在 GUI 介面中：
-   - 選擇要校正/觀察的模式 (Wrist 腕部 / Elbow 手肘 / Aperture 張合)。
-   - 按下 `Record` 按鈕會開始錄製，預設為 10 秒倒數。
-   - 畫面下方會顯示指示文字與紅色目標線，請跟隨目標線移動手臂。
-   - 錄製結束後，數據會自動存成 CSV 檔，存放於專案根目錄的 `data/` 資料夾下。
+## 使用技術
 
-## 硬體連接 (Hardware Connection)
-若有連接實體手臂或微控制器：
-- 請至 `project/main.py` 修改全域變數 `CONFIG` 區塊中的 `SERIAL_PORT` 為正確的 COM Port (例如 `COM3` 或是 Linux 下的 `/dev/ttyUSB0`)。
-- 預設通訊傳輸格式為 `W:{腕部角度},E:{手肘角度},A:{張合度}\n`。
+- Python、OpenCV
+- cvzone PoseModule、HandTrackingModule
+- Landmark 幾何計算
+- Median filter、scalar Kalman filter
+- PyBullet、URDF、position control
+- Tkinter、Pillow
+- CSV 記錄、PySerial 序列介面
+
+## 專案範圍與我的學習
+
+這個原型處理的是影像平面 landmark 幾何量測，以及將角度映射至模擬關節。它沒有完成校準後的人體 3D 姿態重建，也沒有建立通用的人體座標至機器人座標轉換、逆運動學或運動規劃。PyBullet 中的模擬控制也不等同於經驗證的實體手臂控制。
+
+透過這項實作，我進一步理解到視覺 landmark 的輸出仍需經過幾何計算、訊號處理與座標／關節映射，才能成為可供機器人系統使用的輸入。這讓我對電腦視覺、機器人感知及 perception-to-action 整合更感興趣。以機器學習進行 2D-to-3D 空間判斷是後續研究方向，目前專案尚未完成這項功能。
 
 ---
 
 # English Version
 
-# Elbow Wrist Sync
+# Elbow–Wrist Visual Tracking and PyBullet Robotic Arm Simulation
 
 ![Demo](image57.gif)
 
-This project is a highly integrated hand joint tracking and robotic arm synchronization system based on computer vision (MediaPipe) and **highly realistic physical simulation (PyBullet)**. The core highlight of this project is its use of **PyBullet to create a remarkably authentic 3D virtual environment**. As the system captures real-time elbow angles, wrist angles, and finger aperture via a webcam, it maps these subtle movements synchronously to a virtual robotic arm with **zero-latency and high realism**. This allows developers to experience extremely realistic physics, collisions, and kinematics previewing, even without physical hardware. Additionally, it supports Serial communication for controlling physical robotic arms and records precise motion data for various analysis and robotics research applications.
+## Project Overview
 
-## Features
-- **Realistic 3D Physical Simulation (PyBullet)**: Deeply integrated with the PyBullet engine, this project provides ultra-realistic physics, collision, and joint articulation simulation. It perfectly reflects real-world arm poses in a highly realistic virtual environment in real-time, significantly reducing testing costs and risks without the need for physical hardware.
-- **Real-time Pose Detection**: Uses MediaPipe to detect spatial coordinates of the shoulder, elbow, wrist joints, and fingers, calculating precise angles.
-- **Noise Filtering (Kalman & Median Filter)**: Built-in Kalman filter combined with a median filter to make the extracted angle changes smoother and more stable.
-- **Serial Communication**: Transmits the converted angle data at a high frequency (e.g., 20Hz) to a microcontroller for synchronized control of a physical arm.
-- **Data Recording**: Built-in calibration and recording functionality that exports elbow/wrist angles and aperture status to a CSV file.
+Using human arm and hand landmarks extracted from webcam feeds as input, this project computes elbow angles, wrist angles, and finger aperture states, mapping the smoothed angles to URDF robotic arm joints in PyBullet. Through this project, I explored transforming visual geometric information into control parameters and observing their application in robotic simulation. Building upon this foundation, I aim to explore machine learning methods to advance from 2D visual information to 3D spatial estimation in future work.
 
-## Project Structure
-```text
-elbow_wrist+sync/
-├── data/                 # Auto-generated directory for storing recorded CSV calibration data
-├── logs/                 # Directory for storing error logs and system execution records
-├── project/              # Main directory for source code and resources
-│   ├── assets/           # 3D model resources (e.g., simple_arm.urdf)
-│   ├── utils/            # Functional modules
-│   │   ├── detector.py   # MediaPipe vision detection and angle calculation logic
-│   │   ├── filters.py    # Kalman and median filtering algorithms
-│   │   ├── recorder.py   # Logic for recording data arrays and writing to CSV
-│   │   └── sim_env.py    # PyBullet 3D simulation environment setup and update logic
-│   └── main.py           # GUI application and main system integration entry point
-└── README.md             # Project documentation
-```
+## Vision-to-Simulation Joint Pipeline
 
-## Requirements
-This project is developed using Python (Python 3.8+ recommended).
-Ensure the following packages are installed:
-- `opencv-python` (cv2)
-- `mediapipe`
-- `cvzone`
-- `pybullet`
-- `pyserial`
-- `Pillow`
-- `numpy`
+1. Capture webcam video frames using OpenCV.
+2. Extract body pose and hand landmarks using cvzone `PoseModule` and `HandTrackingModule`.
+3. Compute elbow angle from geometric relationships among shoulder, elbow, and wrist landmarks; compute wrist angle from elbow, wrist, and palm landmark points.
+4. Determine finger aperture state (open/close) based on the distance between thumb and index fingertips.
+5. Smooth angle signals using a median filter combined with a scalar Kalman filter.
+6. Map smoothed angles to target URDF joint positions and update simulated joints via PyBullet position control.
+7. Includes optional CSV data logging and PySerial serial output pipelines.
 
-## How to Use
-1. Open a terminal/command prompt and navigate to the `project` directory:
-   ```bash
-   cd project
-   ```
-2. Run the main application:
-   ```bash
-   python main.py
-   ```
-3. In the GUI:
-   - Select the mode you want to calibrate or observe (Wrist / Elbow / Aperture).
-   - Click the `Record` button to start recording (default is a 10-second countdown).
-   - A red target line and instructions will appear at the bottom of the screen. Please follow the target line to move your arm.
-   - After recording is complete, the data will automatically be saved as a CSV file in the `data/` folder located in the project root.
+## Technologies Used
 
-## Hardware Connection
-If connecting to a physical robotic arm or microcontroller:
-- Go to `project/main.py` and modify the `SERIAL_PORT` under the `CONFIG` section to the correct COM port (e.g., `COM3` on Windows or `/dev/ttyUSB0` on Linux).
-- The default communication format is `W:{wrist_angle},E:{elbow_angle},A:{aperture_status}\n`.
+- Python, OpenCV
+- cvzone (`PoseModule`, `HandTrackingModule`)
+- Landmark geometric computation
+- Median filter, scalar Kalman filter
+- PyBullet, URDF, position control
+- Tkinter, Pillow
+- CSV logging, PySerial serial interface
+
+## Project Scope and Key Learnings
+
+This prototype focuses on 2D image-plane landmark geometric measurements and mapping calculated angles to simulated joints. It does not perform calibrated 3D human pose reconstruction, nor does it establish universal human-to-robot coordinate transformations, inverse kinematics (IK), or motion planning. Furthermore, position control in PyBullet simulation is not equivalent to validated physical robot arm control.
+
+Through this implementation, I gained a deeper appreciation of the pipeline required before visual landmarks can serve as viable robot inputs—namely geometric computation, signal conditioning, and coordinate/joint mapping. This experience has deepened my interest in computer vision, robotic perception, and perception-to-action integration. Applying machine learning for 2D-to-3D spatial reasoning represents a promising direction for future research, which is not yet implemented in the current prototype.
